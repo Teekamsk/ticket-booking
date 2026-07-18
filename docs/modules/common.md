@@ -31,13 +31,17 @@ Cross-cutting infrastructure every other module builds on. No business domain of
 All errors are `application/problem+json` with: `status`, `title`, `detail`, `errorCode`, `timestamp`
 (+ `errors[]` for validation). Status conventions: `400` validation, `401` unauthenticated,
 `403` access denied, `404` not found, `409` conflict, `410` gone (expired hold),
-`422` business-rule violation, `500` unexpected.
+`422` business-rule violation, `500` unexpected. A `DataIntegrityViolationException` (e.g. a
+unique-key race that slips past an application pre-check) is mapped to `409` with
+`errorCode: DATA_CONFLICT` as a cross-cutting safety net.
 
 ## Key decisions
 
 - **Flyway owns the schema** (`spring.jpa.hibernate.ddl-auto=validate`). Migrations in
   `src/main/resources/db/migration`. Phase 0 ships `V1__baseline.sql` (history table only; tables
   start in Phase 1). **Spring Boot 4 requires the `spring-boot-flyway` module** for autoconfiguration.
+- **Schema-per-module topology:** each module owns a Postgres schema (`auth`, `catalog`, …) in one
+  database; cross-module references are by id, not FK. Full rationale in [`../DATABASE.md`](../DATABASE.md).
 - **Jackson 3** (`tools.jackson.*`) is the JSON stack in Spring Boot 4 — not `com.fasterxml.jackson`.
 - **Security error responses** come from two layers: URL-level auth failures (unauthenticated /
   URL-denied) are handled by the filter chain (entry point / access-denied handler), while

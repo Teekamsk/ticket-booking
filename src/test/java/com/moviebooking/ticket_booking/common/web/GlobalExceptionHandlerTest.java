@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -42,6 +43,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void dataIntegrityViolation_mapsToConflict() throws Exception {
+        mockMvc.perform(get("/test/data-conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode", is("DATA_CONFLICT")));
+    }
+
+    @Test
     void validationError_mapsToBadRequestWithFieldMessages() throws Exception {
         mockMvc.perform(post("/test/validate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -59,6 +67,11 @@ class GlobalExceptionHandlerTest {
         @org.springframework.web.bind.annotation.GetMapping("/not-found")
         String notFound() {
             throw new ResourceNotFoundException("City 99 not found");
+        }
+
+        @org.springframework.web.bind.annotation.GetMapping("/data-conflict")
+        String dataConflict() {
+            throw new DataIntegrityViolationException("duplicate key value violates unique constraint");
         }
 
         @PostMapping("/validate")

@@ -22,7 +22,11 @@ are almost certainly already specified there. Do not invent contracts that contr
 1. **Request DTO** — `dto/<Action>Request.java`. Bean Validation on every field with a clear
    `message`. Never accept an entity.
 2. **Response DTO** — `dto/<Action>Response.java`. Never return an entity.
-3. **Repository** — add query methods as needed. Concurrency locks
+3. **Entity / schema** — new entities set `@Table(name = "…", schema = "<module>")` and their
+   migration does `CREATE SCHEMA IF NOT EXISTS <module>;`. FKs only within the module's schema;
+   reference other modules by a plain indexed `*_id` column (no cross-schema FK), validated in the
+   service via that module's service. See `docs/DATABASE.md`.
+4. **Repository** — add query methods as needed. Concurrency locks
    (`@Lock(LockModeType.PESSIMISTIC_WRITE)`, `FOR UPDATE`, ordered fetch) live here.
 4. **Service** — business logic + `@Transactional`. Owns only this module's repositories.
    Cross-module needs go service → service. Raise domain exceptions for rule violations.

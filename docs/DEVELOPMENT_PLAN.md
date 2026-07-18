@@ -75,7 +75,14 @@ added beyond DESIGN.
 messages; JWT issued and accepted by a protected probe endpoint; **RBAC — customer token gets `403`
 on an admin route, admin token passes.**
 
-## Phase 2 — `catalog`
+## Phase 2 — `catalog` ✅ DONE
+
+Delivered: City/Theatre/Screen/Seat/Movie entities + `V3` migration, admin CRUD
+(`AdminCatalogController`, RBAC) + public browse (`CatalogController`), row-block bulk seat creation
+with `total_seats` upkeep, per-entity services/handlers/DTOs, `CatalogMapper`, `docs/modules/catalog.md`,
+Postman *Phase 2 - Catalog*. Added `MALFORMED_REQUEST`/`NoResourceFound` handlers. 46 tests green;
+verified end-to-end (admin chain, public browse, RBAC, validation, invalid-enum, 404, soft-delete
+hiding). Decisions: row-block seats, no-cascade soft delete, `cityId` movie filter deferred to Phase 4.
 
 **Owns:** `City`, `Theatre`, `Screen`, `Seat`, `Movie`.
 - Admin CRUD (`/admin/...`) + public browse (`/cities`, `/movies?cityId=&q=`).
@@ -164,6 +171,11 @@ block the booking flow; reminder scheduling.
 4. **Auth:** stateless **JWT access token only** (no refresh/logout in v1) + **RBAC** for
    ADMIN/CUSTOMER via method-level security. RBAC foundation lands in Phase 1 and is consumed by
    every later admin/customer endpoint.
+5. **DB topology (reviewed after Phase 2):** one physical database, **schema-per-module** (`auth`,
+   `catalog`, …), cross-module references by id (no cross-schema FKs). Preserves ACID + `FOR UPDATE`
+   for the booking core while enabling a future service split. Rationale + service map in
+   [`DATABASE.md`](DATABASE.md). All `@Entity` set `@Table(schema=…)`; each module migration creates
+   its schema.
 
 ## Execution
 

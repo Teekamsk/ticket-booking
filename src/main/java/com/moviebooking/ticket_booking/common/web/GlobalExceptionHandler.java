@@ -2,12 +2,15 @@ package com.moviebooking.ticket_booking.common.web;
 
 import com.moviebooking.ticket_booking.common.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.util.List;
 import java.util.Map;
@@ -40,6 +43,26 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
         return ProblemDetails.of(HttpStatus.FORBIDDEN,
                 "You do not have permission to access this resource", "ACCESS_DENIED");
+    }
+
+    /** Safety net for DB constraint violations (e.g. a unique-key race that slips past a pre-check). */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return ProblemDetails.of(HttpStatus.CONFLICT,
+                "The request conflicts with existing data", "DATA_CONFLICT");
+    }
+
+    /** Unreadable/malformed JSON or an invalid enum value in the body. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST,
+                "Malformed or unreadable request body", "MALFORMED_REQUEST");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoResource(NoResourceFoundException ex) {
+        return ProblemDetails.of(HttpStatus.NOT_FOUND, "Resource not found", "RESOURCE_NOT_FOUND");
     }
 
     @ExceptionHandler(Exception.class)

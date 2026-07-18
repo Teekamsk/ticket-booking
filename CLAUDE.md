@@ -37,6 +37,22 @@ Controller  →  RequestHandler  →  Service  →  Repository  →  Entity
 
 Cross-module calls go **service → service**, never repository-of-another-module.
 
+### Database topology (schema-per-module)
+
+One physical PostgreSQL database, but **each module owns its own schema** (`auth.*`, `catalog.*`,
+`show.*`, `booking.*`, …). This keeps the booking core's cross-module ACID transactions and
+`SELECT … FOR UPDATE` locking intact (single connection) while drawing clean boundaries for a
+possible future split into services. See [`docs/DATABASE.md`](docs/DATABASE.md) for the rationale,
+the cross-module transaction inventory, and the realistic future service map.
+
+- Every `@Entity` sets its schema: `@Table(name = "…", schema = "<module>")`.
+- Each module's migration creates its schema (`CREATE SCHEMA IF NOT EXISTS <module>;`) then its tables.
+- **Foreign keys only within a module's own schema.** Across modules/schemas, reference by a plain
+  indexed `BIGINT <other>_id` column (no cross-schema FK) and validate existence in the service via
+  the owning module's service. This is what makes a future extraction possible without a constraint
+  blocking it.
+- Flyway history stays in `public`.
+
 ## Development Guidelines
 
 These are binding. Apply them to every change.
@@ -76,6 +92,10 @@ These are binding. Apply them to every change.
     `docs/modules/<module>.md`. When you create or change a module, create/update its doc in the
     same change — entities, endpoints, key decisions, and how to test it. Docs and code ship
     together, never after.
+12. **Respect module DB boundaries (schema-per-module).** Entities live in their module's schema;
+    FKs stay within a module; cross-module references are plain `*_id` columns validated in the
+    service, never cross-schema FKs or JPA associations to another module's entity. See the
+    Database topology section above and [`docs/DATABASE.md`](docs/DATABASE.md).
 
 ## Testing
 

@@ -100,6 +100,84 @@
           }
         }
       ]
+    },
+    {
+      "name": "Phase 2 - Catalog (Admin)",
+      "description": "Log in as the seeded admin first (Phase 1) to populate {{accessToken}}.",
+      "item": [
+        {
+          "name": "Create city",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bengaluru\",\n  \"state\": \"Karnataka\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/cities", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "cities"] }
+          }
+        },
+        {
+          "name": "Create theatre",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cityId\": 1,\n  \"name\": \"PVR Forum\",\n  \"address\": \"Koramangala\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/theatres", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "theatres"] }
+          }
+        },
+        {
+          "name": "Create screen",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"theatreId\": 1,\n  \"name\": \"Screen 1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/screens", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "screens"] }
+          }
+        },
+        {
+          "name": "Add seats (row blocks)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rows\": [\n    {\"rowLabel\": \"A\", \"seatType\": \"RECLINER\", \"count\": 8},\n    {\"rowLabel\": \"B\", \"seatType\": \"PREMIUM\", \"count\": 12},\n    {\"rowLabel\": \"C\", \"seatType\": \"REGULAR\", \"count\": 20}\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/screens/1/seats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "screens", "1", "seats"] }
+          }
+        },
+        {
+          "name": "List screen seats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/screens/1/seats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "screens", "1", "seats"] }
+          }
+        },
+        {
+          "name": "Create movie",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Inception\",\n  \"language\": \"English\",\n  \"genre\": \"SciFi\",\n  \"durationMin\": 148,\n  \"certificate\": \"UA\",\n  \"releaseDate\": \"2010-07-16\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/movies", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "movies"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 - Catalog (Public)",
+      "item": [
+        {
+          "name": "List cities",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/cities", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cities"] }
+          }
+        },
+        {
+          "name": "Browse movies (title search)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/movies?q=inc", "host": ["{{baseUrl}}"], "path": ["api", "v1", "movies"], "query": [{ "key": "q", "value": "inc" }] }
+          }
+        }
+      ]
     }
   ]
 }
