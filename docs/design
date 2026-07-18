@@ -1,0 +1,237 @@
+--- The Project ---
+
+A movie ticket booking system at scale with multiple cities, multiple theaters per city, multiple
+shows per theater, and seat-level booking. The system should support seat selection with timebound holds
+that release automatically on expiry, multiple pricing tiers (regular, premium,
+weekend) and discount codes, payment, booking confirmation, and refunds on cancellation
+under configurable refund policies. Multiple users may attempt to book the same seat at the
+same time, and the system must correctly serialize bookings without double-allocation.
+Confirmation and reminder notifications should be delivered without blocking the booking flow.
+
+Roles: admin (manage cities, theaters, shows, seat layouts, pricing tiers, and refund policies)
+and customer (browse shows, book and cancel seats, view booking history).
+
+
+---Functionalities---
+
+- system supports multiple cities, theatres, shows
+- users can search the shows based on city and movie name
+- users can view a particular show details eg. timing and available seats
+- can select multiple seats with TTL that release automatically on expiry
+- multiple pricing tiers is supported eg. regular, premium
+- discount codes
+- payment and booking confirmation
+- view booking history
+- booking cancellations and refunds under different refund policies
+- handle the double booking
+- confirmation and reminder notifications should be delivered without blocking the booking flow
+- Role based access
+    Admin : manage cities, theaters, shows, seat layouts, pricing tiers, and refund policies
+    Customer : browse shows, book and cancel seats, view booking history
+
+Assumptions:
+- After seat selection user will land on the checkout page
+- On checkout page total payable amount, payment methods and coupon codes section will be shown
+- If user enters the coupon code then checkout page will be reloaded with the new payable amount
+- payment journey is only simulated with some wait time. No actual redirection/payment debit will happen.
+- Complete payment lifecycle is not supported as of now
+- booking cancellation will be allowed only before the show starts with some gap lets say 30min
+- notifications will be simulated with the logging only
+
+
+Nice to have / Out of scope:
+- discount offers are not being but design will be pluggable to add them later
+- seat layout mapping is not supported right now
+- user level communication preferences
+
+
+
+---Data Modelling---
+
+1. User --> Admin,Customer
+name
+email
+password
+
+2. City
+name
+state
+
+
+3. Theatre
+city_id
+name
+address
+
+4. Screen
+theatre_id
+name
+
+5. Seat
+screen_id
+seat_number
+seat_type
+
+6. Movie
+title
+genre
+duration
+release_date
+
+7. Show
+movie_id
+screen_id
+start_time
+end_time
+status
+
+8. ShowPricing
+show_id
+seat_type
+price
+
+9. ShowSeat
+show_id
+seat_id
+status
+hold_id
+
+10. SeatHold
+user_id
+show_id
+status
+expires_at
+
+
+11. Booking
+reference
+user_id
+show_id
+status
+total_amount
+discount_id
+discount_amount
+payable_amount
+
+
+12. Ticket
+booking_id
+show_id
+seat_id
+price
+status
+
+13. Payment
+booking_id
+amount
+method
+status
+idempotency_key
+
+14. Discount --> Promo, Offer
+code
+type
+applicable_type --> percent/flat
+value
+max_discount_amount
+min_order_amount
+valid_from, to
+
+15. Cancellation
+booking_id
+cancelled_by
+reason
+time
+
+
+16. Refund
+cancellation_id
+payment_id
+amount
+status
+
+
+17. RefundPolicy
+
+
+18. Notification
+
+
+
+
+
+
+---Modules---
+auth
+catalog
+show
+booking
+payment
+discount
+refund
+notification
+
+
+
+
+--> Module structure
+
+Controller
+RequestHandler
+Service
+Repository
+Entity
+
+
+
+
+
+
+Core Booking flow
+
+1. Post /holds
+--> lock seats using for update
+--> validate all are available
+--> create seat hold
+
+2. GET /holds/{id}/checkout
+--> hold validation and discount, payment calculation
+
+3. POST /bookings
+--> validate the seat holds and create booking in pending status
+
+4. POST /payments
+--> create a payment processing entry
+--> Simulate payment redirection delay
+--> Based on result update payment status
+--> If success check the holds if expired then refund else confirm the bookings and tickets
+--> If failed then seat locks will still be held
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
