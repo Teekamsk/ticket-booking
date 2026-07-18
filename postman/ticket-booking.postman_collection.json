@@ -178,6 +178,46 @@
           }
         }
       ]
+    },
+    {
+      "name": "Phase 3 - Refund Policies",
+      "description": "Log in as the seeded admin first to populate {{accessToken}}.",
+      "item": [
+        {
+          "name": "Create refund policy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Standard\",\n  \"rules\": [\n    {\"minMinutesBeforeShow\": 1440, \"refundPercent\": 100},\n    {\"minMinutesBeforeShow\": 120, \"refundPercent\": 50},\n    {\"minMinutesBeforeShow\": 30, \"refundPercent\": 0}\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/refund-policies", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "refund-policies"] }
+          }
+        },
+        {
+          "name": "Update refund policy (replace rules)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Standard\",\n  \"active\": true,\n  \"rules\": [\n    {\"minMinutesBeforeShow\": 1440, \"refundPercent\": 80},\n    {\"minMinutesBeforeShow\": 60, \"refundPercent\": 25}\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/refund-policies/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "refund-policies", "1"] }
+          }
+        },
+        {
+          "name": "List refund policies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/refund-policies", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "refund-policies"] }
+          }
+        },
+        {
+          "name": "Get refund policy",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/refund-policies/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "refund-policies", "1"] }
+          }
+        }
+      ]
     }
   ]
 }

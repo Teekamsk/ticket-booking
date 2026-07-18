@@ -91,7 +91,14 @@ hiding). Decisions: row-block seats, no-cascade soft delete, `cityId` movie filt
 **Test:** admin CRUD with role enforcement (`403` for customer); uniqueness constraints; public
 browse/search; soft-delete (`is_active`).
 
-## Phase 3 — `refund-policy` (config only)
+## Phase 3 — `refund-policy` (config only) ✅ DONE
+
+Delivered: `refund` schema + `V4` migration (`refund_policies`, `refund_rules`), `RefundPolicy`/
+`RefundRule` entities, admin CRUD (`AdminRefundPolicyController`, RBAC), `RefundRuleEvaluator`
+(largest-threshold-≤-gap matching), `docs/modules/refund.md`, Postman *Phase 3 - Refund Policies*.
+61 tests green; verified end-to-end (CRUD, rule replacement reusing a threshold, duplicate name `409`,
+duplicate threshold `422`, validation, RBAC). Decisions: PUT replaces the full rule set; ≥1 rule
+required; unique thresholds per policy; no DELETE (per DESIGN).
 
 **Owns:** `RefundPolicy`, `RefundRule` (admin config). *Refund processing deferred to Phase 8.*
 - `POST/PUT/GET /admin/refund-policies`, rule evaluation logic (match largest
