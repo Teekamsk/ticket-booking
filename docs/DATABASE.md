@@ -27,6 +27,19 @@ enough to extract modules into separate services later.
    the service by calling the owning module's service (e.g. `catalogService.getMovieOrThrow(id)`).
 4. Flyway history lives in `public`; migrations fully-qualify table names.
 
+### Cross-module reads (the established pattern, from Phase 4)
+
+When a module needs another module's data:
+
+- The owning module publishes a small read facade in a `<module>.api` package that returns **view
+  records** (e.g. `catalog.api.CatalogQueryService` → `MovieSummary`/`ScreenLocation`/`SeatView`).
+  Consumers depend on these records, **never** on the owner's entities or repositories.
+- For data shown on the consumer's own reads, **denormalize a snapshot** onto the consumer's rows at
+  write time (e.g. `show.shows` stores movie/theatre/city names; `show.show_seats` stores row/number/
+  type). The consumer's queries then stay entirely within its own schema — no cross-module calls at
+  query time, which is exactly what a future service split needs. Snapshots can go stale on rename;
+  add a refresh path only if/when that matters.
+
 ## Why not physically separate databases per module?
 
 Because the system's headline requirement — *serialize concurrent bookings with no double-allocation*

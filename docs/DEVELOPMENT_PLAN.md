@@ -107,7 +107,16 @@ required; unique thresholds per policy; no DELETE (per DESIGN).
 **Test:** policy + rules CRUD; rule-matching unit tests across boundaries (1440/120/30 → %).
 *(Ordering of this phase depends on Open Decision #2.)*
 
-## Phase 4 — `show`
+## Phase 4 — `show` ✅ DONE
+
+Delivered: `show` schema + `V5` migration, `Show`/`ShowPricing`/`ShowSeat` with a **full denormalized
+read-model**, cross-module read facade `catalog.api.CatalogQueryService` (+ view records) and
+`RefundPolicyService.requireActive`, admin create/update/cancel + public search/detail/seat-map,
+overlap + pricing-coverage guards, `ShowMapper` (group-by-theatre), `docs/modules/show.md`, Postman
+*Phase 4 - Shows*. Added `MISSING_PARAMETER`/`INVALID_PARAMETER` handlers. 76 tests green; verified
+end-to-end (create with derived end_time + snapshot, seat generation, search/detail/seat-map, update,
+cancel, overlap `409`, coverage `422`, RBAC). Decisions: full denormalized read-model; limited PUT
+(pricing + start_time while all seats AVAILABLE).
 
 **Owns:** `Show`, `ShowPricing`, `ShowSeat`.
 - Create show → validates screen-time overlap, sets per-seat-type pricing, references a refund

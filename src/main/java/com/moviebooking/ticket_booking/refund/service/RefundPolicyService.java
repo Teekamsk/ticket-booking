@@ -65,6 +65,14 @@ public class RefundPolicyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Refund policy " + id + " not found"));
     }
 
+    /** Cross-module validation: the policy must exist and be active. Throws otherwise. */
+    @Transactional(readOnly = true)
+    public void requireActive(Long id) {
+        if (!getOrThrow(id).isActive()) {
+            throw new BusinessRuleException("Refund policy " + id + " is not active");
+        }
+    }
+
     private void validateRules(List<RefundRuleSpec> rules) {
         Set<Integer> thresholds = new HashSet<>();
         for (RefundRuleSpec spec : rules) {

@@ -7,8 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 
@@ -58,6 +60,18 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
         return ProblemDetails.of(HttpStatus.BAD_REQUEST,
                 "Malformed or unreadable request body", "MALFORMED_REQUEST");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ProblemDetail handleMissingParam(MissingServletRequestParameterException ex) {
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST,
+                "Missing required parameter: " + ex.getParameterName(), "MISSING_PARAMETER");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST,
+                "Invalid value for parameter: " + ex.getName(), "INVALID_PARAMETER");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

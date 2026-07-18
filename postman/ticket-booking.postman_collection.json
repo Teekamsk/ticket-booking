@@ -218,6 +218,64 @@
           }
         }
       ]
+    },
+    {
+      "name": "Phase 4 - Shows (Admin)",
+      "description": "Create the catalog (city/theatre/screen/seats/movie) and a refund policy first; then set startTime to a future ISO-8601 instant and the ids below.",
+      "item": [
+        {
+          "name": "Create show",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"movieId\": 1,\n  \"screenId\": 1,\n  \"startTime\": \"2026-08-01T18:00:00Z\",\n  \"refundPolicyId\": 1,\n  \"prices\": [\n    {\"seatType\": \"RECLINER\", \"price\": 45000},\n    {\"seatType\": \"PREMIUM\", \"price\": 30000},\n    {\"seatType\": \"REGULAR\", \"price\": 20000}\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/shows", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "shows"] }
+          }
+        },
+        {
+          "name": "Update show (prices and/or startTime)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"prices\": [\n    {\"seatType\": \"RECLINER\", \"price\": 50000},\n    {\"seatType\": \"PREMIUM\", \"price\": 32000},\n    {\"seatType\": \"REGULAR\", \"price\": 22000}\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/shows/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "shows", "1"] }
+          }
+        },
+        {
+          "name": "Cancel show",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/shows/1/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "shows", "1", "cancel"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 4 - Shows (Public)",
+      "item": [
+        {
+          "name": "Search shows (by city)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/shows?cityId=1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shows"], "query": [{ "key": "cityId", "value": "1" }, { "key": "movieId", "value": "1", "disabled": true }, { "key": "date", "value": "2026-08-01", "disabled": true }] }
+          }
+        },
+        {
+          "name": "Show detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/shows/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shows", "1"] }
+          }
+        },
+        {
+          "name": "Seat map",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/shows/1/seats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shows", "1", "seats"] }
+          }
+        }
+      ]
     }
   ]
 }
