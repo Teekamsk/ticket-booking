@@ -15,7 +15,7 @@ Each phase is "done" only when all of these hold:
 - Tests green: service unit tests, `@WebMvcTest` API tests, plus concurrency tests where noted.
   Tests run against a **local Postgres** (no Testcontainers) so `FOR UPDATE` locking is real.
 - Runnable API check: extend the committed **Postman collection** for the module's endpoints,
-  runnable against the app via **Docker Compose** (app + Postgres).
+  runnable against the app started via `./gradlew bootRun` (local Postgres).
 - New/changed schema ships as a **Flyway migration** (versioned, source of truth over ddl-auto).
 - `docs/modules/<module>.md` created/updated.
 - `./gradlew build` and `./gradlew test` pass.
@@ -38,21 +38,33 @@ Two ordering tensions to resolve (see **Open Decisions**):
 
 ---
 
-## Phase 0 — `common` / foundation
+## Phase 0 — `common` / foundation ✅ DONE
 
-**Goal:** project skeleton every other module builds on.
+**Goal:** project skeleton every other module builds on. Delivered: `common` module (BaseEntity,
+Problem-Details error handling, stateless SecurityConfig + RBAC method security, Async/Scheduler
+configs, MoneyUtil, ping probe), Flyway `V1__baseline`, dev/test datasources, Postman baseline,
+`docs/modules/common.md`. All tests green; app verified end-to-end. Notes for later phases:
+Spring Boot 4 needs the `spring-boot-flyway` module for autoconfig; JSON stack is Jackson 3
+(`tools.jackson.*`); we run against local Postgres via `bootRun`.
 - `BaseEntity` (id, created_at, updated_at), auditing config.
 - `GlobalExceptionHandler` (`@RestControllerAdvice`, RFC-7807 Problem Details), base domain
   exceptions (`SeatUnavailableException`, `HoldExpiredException`, `NotFoundException`, …).
 - `SecurityConfig` skeleton (stateless JWT filter chain, method-security enabled for RBAC),
   `AsyncConfig`, scheduler config, money/paise utils.
-- DB config, **Flyway** migration setup, profiles (dev/test), **docker-compose (app + Postgres)**,
-  Postman collection baseline, OpenAPI/Swagger (optional but recommended).
+- DB config, **Flyway** migration setup, profiles (dev/test), Postman collection baseline,
+  OpenAPI/Swagger (optional but recommended).
 
 **Test:** context loads; error handler returns a well-formed Problem Details for a probe endpoint;
-Flyway migrations apply cleanly; `docker compose up` brings the app + DB online.
+Flyway migrations apply cleanly; `./gradlew bootRun` brings the app online against local Postgres.
 
-## Phase 1 — `auth`
+## Phase 1 — `auth` ✅ DONE
+
+Delivered: `User`/`Role` + `users` migration with admin seed, JWT infra in `common/security`
+(JwtService/filter/AuthenticatedUser), register/login/me endpoints with DTOs + validation, RBAC
+via `@PreAuthorize` + method-security `AccessDeniedException` → 403 mapping, `docs/modules/auth.md`,
+Postman *Phase 1 - Auth*. 24 tests green; verified end-to-end (register→login→/me, seeded admin,
+customer 403 / admin 200). Decisions: JWT infra in `common`; first admin via Flyway seed; `/auth/me`
+added beyond DESIGN.
 
 **Owns:** `User`. **APIs:** `POST /auth/register`, `POST /auth/login` (JWT).
 - Stateless JWT **access token only** (no refresh/logout for v1), `JwtService`, BCrypt hashing.
@@ -147,8 +159,8 @@ block the booking flow; reminder scheduling.
    still exercises real `FOR UPDATE` locking for the booking concurrency tests.
 2. **Refund-policy vs show ordering:** build **refund-policy config (Phase 3) before `show`**;
    refund *processing* stays in Phase 8. `Show.refund_policy_id` references a real policy.
-3. **API verification:** committed **Postman collection** + **Docker Compose** (app + Postgres) for
-   manual end-to-end runs, alongside the automated unit/web tests.
+3. **API verification:** committed **Postman collection** run against the app started via
+   `./gradlew bootRun` (local Postgres), alongside the automated unit/web tests.
 4. **Auth:** stateless **JWT access token only** (no refresh/logout in v1) + **RBAC** for
    ADMIN/CUSTOMER via method-level security. RBAC foundation lands in Phase 1 and is consumed by
    every later admin/customer endpoint.
