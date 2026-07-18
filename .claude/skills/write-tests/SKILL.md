@@ -30,7 +30,8 @@ without a test proving it.
   (e.g. `ExecutorService` + `CountDownLatch` to release together).
 - Assert exactly **one** succeeds and the rest fail with `409`.
 - Assert the final `ShowSeat` state is consistent (single HELD/BOOKED owner).
-- Prefer a real DB (or Testcontainers Postgres) so `FOR UPDATE` locking is actually exercised.
+- Run against a **local Postgres** (no Testcontainers) so `FOR UPDATE` locking is actually
+  exercised. H2 must not be used for booking tests — its locking semantics differ.
 
 ## Web-layer tests (`@WebMvcTest`)
 

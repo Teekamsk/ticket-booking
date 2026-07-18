@@ -1,0 +1,159 @@
+# Development Plan — Movie Ticket Booking System
+
+Module-by-module delivery. **Each phase is independently testable** (runnable APIs + passing
+tests) and ships its own architecture doc (`docs/modules/<module>.md`) before the next phase
+starts. Source of truth for design: [`DESIGN.md`](DESIGN.md). Binding rules: [`../CLAUDE.md`](../CLAUDE.md).
+
+## Delivery contract (every phase)
+
+Each phase is "done" only when all of these hold:
+
+- Entities + persistence (with migrations, per DB decision below).
+- Request/response DTOs (no entity crosses the API boundary), Bean Validation with messages.
+- Repository → Service → RequestHandler → Controller wired per the layered architecture.
+- Logging at boundaries; RFC-7807 error responses with correct status codes.
+- Tests green: service unit tests, `@WebMvcTest` API tests, plus concurrency tests where noted.
+  Tests run against a **local Postgres** (no Testcontainers) so `FOR UPDATE` locking is real.
+- Runnable API check: extend the committed **Postman collection** for the module's endpoints,
+  runnable against the app via **Docker Compose** (app + Postgres).
+- New/changed schema ships as a **Flyway migration** (versioned, source of truth over ddl-auto).
+- `docs/modules/<module>.md` created/updated.
+- `./gradlew build` and `./gradlew test` pass.
+
+## Dependency graph (drives the order)
+
+```
+common ──▶ auth ──▶ catalog ──▶ show ──▶ booking ──▶ payment
+                          │        ▲         │
+             refund-policy┘        │    discount (checkout)
+                                   │         │
+                        refund-processing ◀──┘
+                                   │
+                            notification (async, listens on booking/payment events)
+```
+
+Two ordering tensions to resolve (see **Open Decisions**):
+- `Show` references `RefundPolicy` → refund-policy *config* is needed before `show`.
+- Booking checkout applies discounts → `discount` is needed before booking's checkout step.
+
+---
+
+## Phase 0 — `common` / foundation
+
+**Goal:** project skeleton every other module builds on.
+- `BaseEntity` (id, created_at, updated_at), auditing config.
+- `GlobalExceptionHandler` (`@RestControllerAdvice`, RFC-7807 Problem Details), base domain
+  exceptions (`SeatUnavailableException`, `HoldExpiredException`, `NotFoundException`, …).
+- `SecurityConfig` skeleton (stateless JWT filter chain, method-security enabled for RBAC),
+  `AsyncConfig`, scheduler config, money/paise utils.
+- DB config, **Flyway** migration setup, profiles (dev/test), **docker-compose (app + Postgres)**,
+  Postman collection baseline, OpenAPI/Swagger (optional but recommended).
+
+**Test:** context loads; error handler returns a well-formed Problem Details for a probe endpoint;
+Flyway migrations apply cleanly; `docker compose up` brings the app + DB online.
+
+## Phase 1 — `auth`
+
+**Owns:** `User`. **APIs:** `POST /auth/register`, `POST /auth/login` (JWT).
+- Stateless JWT **access token only** (no refresh/logout for v1), `JwtService`, BCrypt hashing.
+- **RBAC:** role enum (ADMIN/CUSTOMER); method-level security (`@PreAuthorize`) enforced here and
+  consumed by all later admin/customer endpoints. This is the RBAC foundation for the whole system.
+
+**Test:** register + login happy paths; duplicate email `409`; bad credentials `401`; validation
+messages; JWT issued and accepted by a protected probe endpoint; **RBAC — customer token gets `403`
+on an admin route, admin token passes.**
+
+## Phase 2 — `catalog`
+
+**Owns:** `City`, `Theatre`, `Screen`, `Seat`, `Movie`.
+- Admin CRUD (`/admin/...`) + public browse (`/cities`, `/movies?cityId=&q=`).
+- Bulk seat creation (`/admin/screens/{id}/seats`).
+
+**Test:** admin CRUD with role enforcement (`403` for customer); uniqueness constraints; public
+browse/search; soft-delete (`is_active`).
+
+## Phase 3 — `refund-policy` (config only)
+
+**Owns:** `RefundPolicy`, `RefundRule` (admin config). *Refund processing deferred to Phase 8.*
+- `POST/PUT/GET /admin/refund-policies`, rule evaluation logic (match largest
+  `min_minutes_before_show ≤ gap`).
+
+**Test:** policy + rules CRUD; rule-matching unit tests across boundaries (1440/120/30 → %).
+*(Ordering of this phase depends on Open Decision #2.)*
+
+## Phase 4 — `show`
+
+**Owns:** `Show`, `ShowPricing`, `ShowSeat`.
+- Create show → validates screen-time overlap, sets per-seat-type pricing, references a refund
+  policy, **generates ShowSeat rows**.
+- Public search (`/shows?cityId=&movieId=&date=`), details, seat map with live availability.
+
+**Test:** show creation generates correct ShowSeats + pricing; overlap rejection; seat-map
+availability reflects AVAILABLE/HELD/BOOKED; search grouping.
+
+## Phase 5 — `discount`
+
+**Owns:** `Discount`, `DiscountRedemption`.
+- Admin promo CRUD; `DiscountService` validate + compute (`DiscountStrategy` / `PromoCodeStrategy`).
+
+**Test:** PERCENT with cap, FLAT, min-order eligibility, validity window, usage limits
+(total & per-user); invalid/expired code messaging.
+
+## Phase 6 — `booking` (core, concurrency-critical)
+
+**Owns:** `SeatHold`, `Booking`, `Ticket`, `Cancellation`.
+- `POST /holds` (lock ShowSeat rows `FOR UPDATE`, ordered; TTL; price snapshot; `409` on conflict).
+- `GET /holds/{id}/checkout?discountCode=` (uses `discount`).
+- `POST /bookings` (PENDING_PAYMENT, freeze amounts), booking history/detail.
+- `POST /bookings/{id}/cancel` (policy gap check; wires to refund in Phase 8).
+- `HoldExpirySweeper` (@Scheduled) + lazy expiry.
+
+**Test (mandatory concurrency):** N threads booking the same seat → exactly one succeeds, rest
+`409`; expired-hold `410`; sweeper releases seats; final ShowSeat state consistent.
+
+## Phase 7 — `payment`
+
+**Owns:** `Payment`.
+- `POST /payments` (simulated delay + configurable failure rate, idempotency key).
+- SUCCESS ⇒ booking CONFIRMED, tickets created, ShowSeats BOOKED, hold CONVERTED, publish event.
+- FAILED ⇒ booking stays PENDING_PAYMENT until hold expiry.
+
+**Test:** idempotent retries (same key → one effect); success confirms + flips seats; failure
+path; payment status endpoint.
+
+## Phase 8 — `refund` (processing)
+
+**Owns:** `Refund` (+ uses Cancellation from booking, RefundPolicy from Phase 3).
+- On cancellation: evaluate matched rule %, create `Refund` against original `Payment`, simulate processing.
+
+**Test:** refund amount = matched-rule % of paid; cutoff rule (0%); refund against correct payment;
+status transitions.
+
+## Phase 9 — `notification`
+
+**Owns:** `Notification`.
+- `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` listeners on booking/payment/refund events.
+- `LoggingNotificationSender`; `ReminderScheduler` (@Scheduled).
+
+**Test:** events produce persisted notifications AFTER_COMMIT (none on rollback); async doesn't
+block the booking flow; reminder scheduling.
+
+---
+
+## Resolved Decisions
+
+1. **Database & schema:** PostgreSQL with **Flyway** versioned migrations as the schema source of
+   truth (not `ddl-auto`). **No Testcontainers** for now — tests run against a local Postgres, which
+   still exercises real `FOR UPDATE` locking for the booking concurrency tests.
+2. **Refund-policy vs show ordering:** build **refund-policy config (Phase 3) before `show`**;
+   refund *processing* stays in Phase 8. `Show.refund_policy_id` references a real policy.
+3. **API verification:** committed **Postman collection** + **Docker Compose** (app + Postgres) for
+   manual end-to-end runs, alongside the automated unit/web tests.
+4. **Auth:** stateless **JWT access token only** (no refresh/logout in v1) + **RBAC** for
+   ADMIN/CUSTOMER via method-level security. RBAC foundation lands in Phase 1 and is consumed by
+   every later admin/customer endpoint.
+
+## Execution
+
+Plan is finalized. We execute **one phase at a time**, in order (Phase 0 → 9). A phase is not
+started until the previous one is green (build + tests pass, APIs runnable, module doc updated).

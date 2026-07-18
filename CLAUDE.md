@@ -68,6 +68,14 @@ These are binding. Apply them to every change.
    handler + `GlobalExceptionHandler` in `common`. Every error has an accurate HTTP status
    and a clear message. Conventions: `409` seat conflict, `410` expired hold, `400` validation,
    `401/403` auth, `404` not found, `422` business-rule rejection.
+10. **Build module by module, each independently testable.** Deliver one module at a time per
+    the plan in [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md). A module is not "done"
+    until its APIs are runnable and its unit/web/(concurrency) tests pass. Do not start the next
+    module until the current one is green.
+11. **Keep module architecture docs current.** Every module has a living doc at
+    `docs/modules/<module>.md`. When you create or change a module, create/update its doc in the
+    same change — entities, endpoints, key decisions, and how to test it. Docs and code ship
+    together, never after.
 
 ## Testing
 
