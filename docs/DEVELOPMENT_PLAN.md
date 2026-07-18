@@ -126,7 +126,15 @@ cancel, overlap `409`, coverage `422`, RBAC). Decisions: full denormalized read-
 **Test:** show creation generates correct ShowSeats + pricing; overlap rejection; seat-map
 availability reflects AVAILABLE/HELD/BOOKED; search grouping.
 
-## Phase 5 — `discount`
+## Phase 5 — `discount` ✅ DONE
+
+Delivered: `discount` schema + `V6` migration, `Discount`/`DiscountRedemption`, admin PROMO CRUD
+(`AdminDiscountController`, RBAC), `DiscountCalculator` (PERCENT-cap/FLAT/clamp), cross-module facade
+`discount.api.DiscountApplicationService` (validateAndCompute + recordRedemption + releaseRedemption),
+`docs/modules/discount.md`, Postman *Phase 5 - Discounts*. Added `DISCOUNT_NOT_APPLICABLE` (422).
+96 tests green; verified end-to-end (admin CRUD, range/validity guards, and the
+validate→record→release cycle against the DB). Decisions: concise calculator+service (no speculative
+strategy interface); usage counted at confirmation, released on cancel.
 
 **Owns:** `Discount`, `DiscountRedemption`.
 - Admin promo CRUD; `DiscountService` validate + compute (`DiscountStrategy` / `PromoCodeStrategy`).
@@ -134,7 +142,17 @@ availability reflects AVAILABLE/HELD/BOOKED; search grouping.
 **Test:** PERCENT with cap, FLAT, min-order eligibility, validity window, usage limits
 (total & per-user); invalid/expired code messaging.
 
-## Phase 6 — `booking` (core, concurrency-critical)
+## Phase 6 — `booking` (core, concurrency-critical) ✅ DONE
+
+Delivered: `booking` schema + `V7` migration, `SeatHold`/`Booking`/`Ticket`/`Cancellation`, holds
+(FOR UPDATE via `show.api.SeatReservationService`, expired-hold reclaim, TTL), checkout with discount,
+booking creation (PENDING_PAYMENT, frozen amounts, show snapshot), `BookingConfirmationService`
+(`booking.api`, for payment), cancellation (gap check via `refund.api`, releases seats, snapshots
+refund %, publishes `BookingCancelledEvent`), `HoldExpirySweeper`, booking/cancelled events,
+`docs/modules/booking.md`, Postman *Phase 6 - Booking*. Added `SEAT_UNAVAILABLE` (409) /
+`HOLD_EXPIRED` (410). **111 tests green, including the mandatory `BookingConcurrencyTest`** (8-thread
+race → exactly one hold succeeds). Decisions: lock+transitions in `show.api` (booking orchestrates);
+cancel state-changes now, refund payout Phase 8.
 
 **Owns:** `SeatHold`, `Booking`, `Ticket`, `Cancellation`.
 - `POST /holds` (lock ShowSeat rows `FOR UPDATE`, ordered; TTL; price snapshot; `409` on conflict).

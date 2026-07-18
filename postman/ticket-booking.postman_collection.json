@@ -276,6 +276,135 @@
           }
         }
       ]
+    },
+    {
+      "name": "Phase 5 - Discounts (Admin)",
+      "description": "Log in as the seeded admin first. validFrom/validTo are ISO-8601 instants.",
+      "item": [
+        {
+          "name": "Create PERCENT promo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"SAVE20\",\n  \"discountType\": \"PERCENT\",\n  \"value\": 20,\n  \"maxDiscountAmount\": 10000,\n  \"minOrderAmount\": 50000,\n  \"validFrom\": \"2026-01-01T00:00:00Z\",\n  \"validTo\": \"2026-12-31T00:00:00Z\",\n  \"maxTotalUses\": 1000,\n  \"maxUsesPerUser\": 2\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/discounts", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "discounts"] }
+          }
+        },
+        {
+          "name": "Create FLAT promo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"FLAT100\",\n  \"discountType\": \"FLAT\",\n  \"value\": 10000,\n  \"minOrderAmount\": 30000,\n  \"validFrom\": \"2026-01-01T00:00:00Z\",\n  \"validTo\": \"2026-12-31T00:00:00Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/discounts", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "discounts"] }
+          }
+        },
+        {
+          "name": "List discounts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/discounts", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "discounts"] }
+          }
+        },
+        {
+          "name": "Deactivate discount",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/discounts/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "discounts", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 6 - Booking (Customer)",
+      "description": "Log in as a CUSTOMER first (Login saves {{accessToken}}). Get seatIds from GET /shows/{id}/seats.",
+      "item": [
+        {
+          "name": "Create hold",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "if (pm.response.code === 201) { pm.collectionVariables.set('holdId', pm.response.json().holdId); }"
+              ] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"showId\": 1,\n  \"seatIds\": [1, 2]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/holds", "host": ["{{baseUrl}}"], "path": ["api", "v1", "holds"] }
+          }
+        },
+        {
+          "name": "Get hold (countdown)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/holds/{{holdId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "holds", "{{holdId}}"] }
+          }
+        },
+        {
+          "name": "Checkout preview (optional discountCode)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/holds/{{holdId}}/checkout?discountCode=SAVE20", "host": ["{{baseUrl}}"], "path": ["api", "v1", "holds", "{{holdId}}", "checkout"], "query": [{ "key": "discountCode", "value": "SAVE20" }] }
+          }
+        },
+        {
+          "name": "Release hold",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/holds/{{holdId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "holds", "{{holdId}}"] }
+          }
+        },
+        {
+          "name": "Create booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "if (pm.response.code === 201) { pm.collectionVariables.set('bookingId', pm.response.json().id); }"
+              ] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"holdId\": {{holdId}},\n  \"discountCode\": null\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/bookings", "host": ["{{baseUrl}}"], "path": ["api", "v1", "bookings"] }
+          }
+        },
+        {
+          "name": "Booking history",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/bookings?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1", "bookings"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "20" }] }
+          }
+        },
+        {
+          "name": "Booking detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "bookings", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "Cancel booking (requires CONFIRMED; confirm arrives in Phase 7)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"changed plans\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1", "bookings", "{{bookingId}}", "cancel"] }
+          }
+        }
+      ]
     }
   ]
 }

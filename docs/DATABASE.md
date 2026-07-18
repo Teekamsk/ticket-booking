@@ -40,6 +40,16 @@ When a module needs another module's data:
   query time, which is exactly what a future service split needs. Snapshots can go stale on rename;
   add a refresh path only if/when that matters.
 
+### Cross-module writes (from Phase 6)
+
+A module never writes another schema's tables directly. When a write must span modules (e.g. booking
+locking + flipping `show.show_seats`), the **owning module exposes the mutation in its `<module>.api`
+facade** and the caller invokes it inside its own `@Transactional`. Because it's one database and one
+transaction, ACID + pessimistic locks (`SELECT … FOR UPDATE`) hold across the module boundary, while
+each table is still only ever written by its owner (`show.api.SeatReservationService` owns the
+ShowSeat lock/transitions; `booking` orchestrates). A future extraction replaces the in-process facade
+call with an RPC + saga at that seam.
+
 ## Why not physically separate databases per module?
 
 Because the system's headline requirement — *serialize concurrent bookings with no double-allocation*
