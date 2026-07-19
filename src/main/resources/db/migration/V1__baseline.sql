@@ -1,0 +1,3 @@
+-- Baseline migration for the Movie Ticket Booking System.
+-- Schema objects are introduced per module starting with Phase 1 (auth).
+-- This file establishes the Flyway migration history table on a fresh database.

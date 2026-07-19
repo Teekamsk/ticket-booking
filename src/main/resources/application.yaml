@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: ticket-booking
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ticket_booking}
+    username: ${DB_USERNAME:ticket_booking}
+    password: ${DB_PASSWORD:ticket_booking}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema; Hibernate only validates against it
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-change-me-please-32-bytes-minimum-abcdefghijklmnop}
+    expiration: ${JWT_EXPIRATION:24h}
+  booking:
+    hold-ttl: ${HOLD_TTL:5m}
+    sweeper-interval-ms: ${HOLD_SWEEPER_INTERVAL_MS:30000}
+  payment:
+    delay: ${PAYMENT_DELAY:300ms}
+    failure-rate: ${PAYMENT_FAILURE_RATE:0.0}
+  notification:
+    reminder-window: ${REMINDER_WINDOW:24h}
+    reminder-interval-ms: ${REMINDER_INTERVAL_MS:3600000}
+    reminder-initial-delay-ms: ${REMINDER_INITIAL_DELAY_MS:60000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.moviebooking.ticket_booking: DEBUG
