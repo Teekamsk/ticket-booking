@@ -74,13 +74,13 @@ public class CancellationService {
         cancellation.setCancelledBy(userId);
         cancellation.setReason(reason);
         cancellation.setRefundPercentApplied(refundPercent.getAsInt());
-        cancellationRepository.save(cancellation);
+        Cancellation savedCancellation = cancellationRepository.save(cancellation);
 
         if (booking.getDiscountId() != null) {
             discountApplicationService.releaseRedemption(bookingId);
         }
-        eventPublisher.publishEvent(new BookingCancelledEvent(bookingId, userId,
-                refundPercent.getAsInt(), booking.getPayableAmount()));
+        eventPublisher.publishEvent(new BookingCancelledEvent(bookingId, booking.getBookingRef(), userId,
+                savedCancellation.getId(), refundPercent.getAsInt(), booking.getPayableAmount()));
         log.info("Booking {} cancelled by user {} (refund {}%)", bookingId, userId, refundPercent.getAsInt());
 
         List<SeatLine> seats = booking.getTickets().stream()

@@ -80,3 +80,12 @@ Schema-per-module + ID boundaries make extraction feasible where it actually mak
 - **notification** — separable (async by design).
 
 So ~4 deployable units, not 9. The ID-reference rule (rule 3 above) is what keeps that path open.
+
+### Cross-module integration via events (from Phase 8/9)
+
+Peripheral, eventually-consistent reactions cross module boundaries as **domain events**, not
+synchronous calls: `booking` publishes `BookingConfirmedEvent`/`BookingCancelledEvent`; `refund`
+listens (`@Async @TransactionalEventListener(AFTER_COMMIT)`) to create the payout and publishes
+`RefundProcessedEvent`; `notification` listens to all three. Listeners run after the originating
+transaction commits and off the request thread, so a rollback emits nothing and delivery never blocks
+the booking. At a future service split these in-process events become a message bus at that seam.

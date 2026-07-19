@@ -1,8 +1,29 @@
-# Module: `refund` (Phase 3 — policy config; processing in Phase 8)
+# Module: `refund` (Phase 3 — policy config; Phase 8 — payout)
 
-Owns configurable refund policies and their tiered rules. Phase 3 delivers admin CRUD + the
-rule-evaluation logic. **Refund *processing*** (the `Refund` entity, evaluating a policy against a
-cancellation, simulated payout) is deferred to Phase 8. Schema: `refund`.
+Owns configurable refund policies + rules (Phase 3) and the refund payout (Phase 8). Schema: `refund`.
+
+## Refund payout (Phase 8)
+
+On cancellation, `booking` publishes a `BookingCancelledEvent` (carrying `bookingRef`,
+`cancellationId`, `refundPercentApplied`, `paidAmount`). `refund` reacts and settles the payout:
+
+- **`BookingCancelledListener`** — `@Async @TransactionalEventListener(AFTER_COMMIT)`; runs off the
+  request thread after the cancel transaction commits.
+- **`RefundService.processRefund`** — idempotent (one refund per booking): skips 0%-refunds; finds the
+  successful payment via `payment.api.PaymentQueryService`; creates a `Refund`
+  (`amount = paidAmount × percent / 100`), marks it PROCESSED (simulated instant settlement), and
+  publishes a `RefundProcessedEvent` (notification listens).
+- **`RefundController`** — `GET /api/v1/refunds?bookingId=` (👤 CUSTOMER, owner-scoped) → the refund
+  for a booking, or `404` if none.
+
+`refunds` table: `cancellation_id`/`payment_id`/`booking_id`/`user_id` (cross-module ids, no FK),
+`amount`, `status` (INITIATED/PROCESSED/FAILED), `processed_at`; `uq_refund_booking` (one per booking).
+Tested by `RefundServiceTest` (0%/duplicate/no-payment/eligible) and the end-to-end
+`NotificationEventIntegrationTest`. Migration `V9__create_refunds.sql`.
+
+---
+
+## Refund policy config (Phase 3)
 
 ## Endpoints — `/api/v1/admin/refund-policies` 🛡 ADMIN (`AdminRefundPolicyController`)
 

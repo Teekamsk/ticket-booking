@@ -183,7 +183,14 @@ idempotency by client key; failure-rate 0 default.
 **Test:** idempotent retries (same key → one effect); success confirms + flips seats; failure
 path; payment status endpoint.
 
-## Phase 8 — `refund` (processing)
+## Phase 8 — `refund` (processing) ✅ DONE
+
+Delivered: `Refund` entity + `V9` migration, `BookingCancelledListener` (`@Async` AFTER_COMMIT),
+`RefundService.processRefund` (idempotent; `amount = paid × percent/100`; finds payment via
+`payment.api.PaymentQueryService`; publishes `RefundProcessedEvent`), owner-scoped
+`GET /api/v1/refunds?bookingId=`, `docs/modules/refund.md`, Postman *Phase 8 - Refund*. 134 tests
+green; verified end-to-end (cancel → refund ₹100 PROCESSED). Decisions: event-driven payout; no
+payout for 0% cancellations.
 
 **Owns:** `Refund` (+ uses Cancellation from booking, RefundPolicy from Phase 3).
 - On cancellation: evaluate matched rule %, create `Refund` against original `Payment`, simulate processing.
@@ -191,7 +198,16 @@ path; payment status endpoint.
 **Test:** refund amount = matched-rule % of paid; cutoff rule (0%); refund against correct payment;
 status transitions.
 
-## Phase 9 — `notification`
+## Phase 9 — `notification` (communication service) ✅ DONE
+
+Delivered: `notification` schema + `V10` migration, **multi-channel communication service** —
+`ChannelSender` interface + Email/Sms/Push stubs + `ChannelSenderRegistry`, `CommunicationService`
+(per-channel dispatch + persistence), `@Async` AFTER_COMMIT listeners (booking confirmed/cancelled,
+refund processed), `ReminderScheduler` + `booking.api.BookingReminderService`, `docs/modules/notification.md`.
+134 tests green; verified end-to-end (6 notifications SENT across EMAIL+PUSH for a pay+cancel flow;
+deduped reminders). Decision: kept module name `notification` but architected as a pluggable
+communication service (channels extensible without touching the dispatcher); default channels
+EMAIL+PUSH; all senders log-stubbed.
 
 **Owns:** `Notification`.
 - `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` listeners on booking/payment/refund events.

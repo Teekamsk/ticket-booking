@@ -30,6 +30,10 @@ public abstract class AbstractBookingIntegrationTest {
 
     /** Admin-creates city→theatre→screen→seats→movie→policy→show and returns its seat ids. */
     protected ShowFixture createShow(int seatCount) throws Exception {
+        return createShow(seatCount, Instant.now().plus(2, ChronoUnit.DAYS));
+    }
+
+    protected ShowFixture createShow(int seatCount, Instant startTime) throws Exception {
         String admin = adminToken();
         String suffix = String.valueOf(System.nanoTime());
         long cityId = createId(admin, "/api/v1/admin/cities",
@@ -45,7 +49,7 @@ public abstract class AbstractBookingIntegrationTest {
                 "{\"title\":\"M-%s\",\"language\":\"EN\",\"genre\":\"X\",\"durationMin\":120,\"certificate\":\"UA\",\"releaseDate\":\"2020-01-01\"}".formatted(suffix));
         long policyId = createId(admin, "/api/v1/admin/refund-policies",
                 "{\"name\":\"P-%s\",\"rules\":[{\"minMinutesBeforeShow\":120,\"refundPercent\":50},{\"minMinutesBeforeShow\":30,\"refundPercent\":0}]}".formatted(suffix));
-        String start = Instant.now().plus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES).toString();
+        String start = startTime.truncatedTo(ChronoUnit.MINUTES).toString();
         long showId = createId(admin, "/api/v1/admin/shows",
                 "{\"movieId\":%d,\"screenId\":%d,\"startTime\":\"%s\",\"refundPolicyId\":%d,\"prices\":[{\"seatType\":\"REGULAR\",\"price\":20000}]}"
                         .formatted(movieId, screenId, start, policyId));

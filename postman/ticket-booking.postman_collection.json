@@ -436,6 +436,20 @@
           }
         }
       ]
+    },
+    {
+      "name": "Phase 8 - Refund (Customer)",
+      "description": "After cancelling a CONFIRMED booking, the refund is created asynchronously; poll this to see it.",
+      "item": [
+        {
+          "name": "Refund for a booking",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/refunds?bookingId={{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "refunds"], "query": [{ "key": "bookingId", "value": "{{bookingId}}" }] }
+          }
+        }
+      ]
     }
   ]
 }
