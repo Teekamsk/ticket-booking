@@ -40,6 +40,20 @@ public class BookingConfirmationService {
     private final DiscountApplicationService discountApplicationService;
     private final ApplicationEventPublisher eventPublisher;
 
+    /** Payment-facing: validates the booking is the caller's and awaiting payment, returns its amount. */
+    @Transactional(readOnly = true)
+    public PayableBooking loadPayable(Long bookingId, Long userId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking " + bookingId + " not found"));
+        if (!booking.getUserId().equals(userId)) {
+            throw new ResourceNotFoundException("Booking " + bookingId + " not found");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+            throw new BusinessRuleException("Booking is not awaiting payment");
+        }
+        return new PayableBooking(bookingId, booking.getPayableAmount());
+    }
+
     @Transactional
     public void confirm(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)

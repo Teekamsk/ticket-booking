@@ -396,12 +396,43 @@
           }
         },
         {
-          "name": "Cancel booking (requires CONFIRMED; confirm arrives in Phase 7)",
+          "name": "Cancel booking (requires CONFIRMED)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"reason\": \"changed plans\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1", "bookings", "{{bookingId}}", "cancel"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 7 - Payment (Customer)",
+      "description": "Create a PENDING booking first. SUCCESS confirms the booking; failure-rate is 0 by default.",
+      "item": [
+        {
+          "name": "Pay (simulated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "if (pm.response.code === 200) { pm.collectionVariables.set('paymentId', pm.response.json().id); }"
+              ] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"bookingId\": {{bookingId}},\n  \"method\": \"UPI\",\n  \"idempotencyKey\": \"pay-{{bookingId}}-1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/payments", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments"] }
+          }
+        },
+        {
+          "name": "Payment status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "{{paymentId}}"] }
           }
         }
       ]

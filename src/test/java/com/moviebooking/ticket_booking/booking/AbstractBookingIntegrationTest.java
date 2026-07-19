@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Shared setup for booking integration tests: builds a show with seats and mints tokens. */
 @SpringBootTest
 @AutoConfigureMockMvc
-abstract class AbstractBookingIntegrationTest {
+public abstract class AbstractBookingIntegrationTest {
 
     @Autowired
     protected MockMvc mockMvc;

@@ -24,6 +24,9 @@ app:
   booking:
     hold-ttl: ${HOLD_TTL:5m}
     sweeper-interval-ms: ${HOLD_SWEEPER_INTERVAL_MS:30000}
+  payment:
+    delay: ${PAYMENT_DELAY:300ms}
+    failure-rate: ${PAYMENT_FAILURE_RATE:0.0}
 
 management:
   endpoints:

@@ -164,7 +164,16 @@ cancel state-changes now, refund payout Phase 8.
 **Test (mandatory concurrency):** N threads booking the same seat → exactly one succeeds, rest
 `409`; expired-hold `410`; sweeper releases seats; final ShowSeat state consistent.
 
-## Phase 7 — `payment`
+## Phase 7 — `payment` ✅ DONE
+
+Delivered: `payment` schema + `V8` migration, `Payment` + `PaymentMethod`/`PaymentStatus`,
+`PaymentGateway` interface + `SimulatedPaymentGateway` (configurable delay + failure rate),
+`PaymentService` (idempotency, orchestration) + `PaymentProcessor` (`@Transactional` persist +
+confirm via `booking.api`), `booking.api.loadPayable`, `PaymentController` (pay + status),
+`docs/modules/payment.md`, Postman *Phase 7 - Payment*. 124 tests green; verified end-to-end
+(pay → booking CONFIRMED + seats BOOKED, idempotent retry, forced-failure → PENDING/seats HELD,
+pay-already-confirmed `422`). Decisions: gateway delay outside the tx (separate finalizer);
+idempotency by client key; failure-rate 0 default.
 
 **Owns:** `Payment`.
 - `POST /payments` (simulated delay + configurable failure rate, idempotency key).
